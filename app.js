@@ -1,59 +1,83 @@
-const BASE_URL =
-  "https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies";
+/* Created by Tivotal */
+let dropList = document.querySelectorAll("form select");
+let fromCurrency = document.querySelector(".from select");
+let toCurrency = document.querySelector(".to select");
+let icon = document.querySelector(".icon");
+let exchangeTxt = document.querySelector(".exchange_rate");
+let getBtn = document.querySelector("button");
 
-const dropdowns = document.querySelectorAll(".dropdown select");
-const btn = document.querySelector("form button");
-const fromCurr = document.querySelector(".from select");
-const toCurr = document.querySelector(".to select");
-const msg = document.querySelector(".msg");
+//adding options tag
 
-for (let select of dropdowns) {
-  for (currCode in countryList) {
-    let newOption = document.createElement("option");
-    newOption.innerText = currCode;
-    newOption.value = currCode;
-    if (select.name === "from" && currCode === "USD") {
-      newOption.selected = "selected";
-    } else if (select.name === "to" && currCode === "INR") {
-      newOption.selected = "selected";
-    }
-    select.append(newOption);
+
+for (let i = 0; i < dropList.length; i++) {
+  for (let currency_code in country_list) {
+    let selected =
+      i == 0
+        ? currency_code == "USD"
+          ? "selected"
+          : ""
+        : currency_code == "INR"
+        ? "selected"
+        : "";
+
+    let optionTag = `<option value="${currency_code}" ${selected}>
+    ${currency_code}</option>`;
+
+    dropList[i].insertAdjacentHTML("beforeend", optionTag);
   }
 
-  select.addEventListener("change", (evt) => {
-    updateFlag(evt.target);
+  dropList[i].addEventListener("change", (e) => {
+    loadFlag(e.target);
   });
 }
 
-const updateExchangeRate = async () => {
-  let amount = document.querySelector(".amount input");
-  let amtVal = amount.value;
-  if (amtVal === "" || amtVal < 1) {
-    amtVal = 1;
-    amount.value = "1";
+function loadFlag(element) {
+  for (let code in country_list) {
+    if (code == element.value) {
+      let imgTag = element.parentElement.querySelector("img");
+      imgTag.src = `https://flagcdn.com/48x36/${country_list[
+        code
+      ].toLowerCase()}.png`;
+    }
   }
-  const URL = `${BASE_URL}/${fromCurr.value.toLowerCase()}/${toCurr.value.toLowerCase()}.json`;
-  let response = await fetch(URL);
-  let data = await response.json();
-  let rate = data[toCurr.value.toLowerCase()];
+}
 
-  let finalAmount = amtVal * rate;
-  msg.innerText = `${amtVal} ${fromCurr.value} = ${finalAmount} ${toCurr.value}`;
-};
-
-const updateFlag = (element) => {
-  let currCode = element.value;
-  let countryCode = countryList[currCode];
-  let newSrc = `https://flagsapi.com/${countryCode}/flat/64.png`;
-  let img = element.parentElement.querySelector("img");
-  img.src = newSrc;
-};
-
-btn.addEventListener("click", (evt) => {
-  evt.preventDefault();
-  updateExchangeRate();
+getBtn.addEventListener("click", (e) => {
+  e.preventDefault();
+  getExchangeValue();
 });
 
+function getExchangeValue() {
+  const amount = document.querySelector("form input");
+  let amountVal = amount.value;
+  if (amountVal == "" || amountVal == "0") {
+    amount.value = "1";
+    amountVal = 1;
+  }
+
+  exchangeTxt.innerText = "Getting exchange rate...";
+  let url = `https://v6.exchangerate-api.com/v6/f052129de772fbdb27e9d447/latest/${fromCurrency.value}`;
+  fetch(url)
+    .then((response) => response.json())
+    .then((result) => {
+      let exchangeRate = result.conversion_rates[toCurrency.value];
+      let total = (amountVal * exchangeRate).toFixed(2);
+      exchangeTxt.innerText = `${amountVal} ${fromCurrency.value} = ${total} ${toCurrency.value}`;
+    })
+    .catch(() => {
+      exchangeTxt.innerText = "something went wrong";
+    });
+}
+
 window.addEventListener("load", () => {
-  updateExchangeRate();
+  getExchangeValue();
+});
+
+icon.addEventListener("click", () => {
+  let tempCode = fromCurrency.value;
+  fromCurrency.value = toCurrency.value;
+  toCurrency.value = tempCode;
+  loadFlag(fromCurrency);
+  loadFlag(toCurrency);
+  getExchangeValue();
 });
